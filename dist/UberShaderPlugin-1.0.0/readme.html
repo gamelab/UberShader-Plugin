@@ -1,0 +1,395 @@
+<h1 id="html5-ubershader-for-kiwi-js">HTML5 UberShader for Kiwi.JS</h1>
+<ul>
+<li>Name: Uber Shader Plugin.</li>
+<li>Version: 1.0.0</li>
+<li>Type: Shader</li>
+<li>Author: Benjamin D. Richards for Kiwi.js Team</li>
+<li>Website: www.kiwijs.org</li>
+<li>Kiwi.js Version Last Tested: 1.1.1</li>
+</ul>
+<hr>
+<h2 id="versions-">Versions:</h2>
+<p>1.0.0</p>
+<ul>
+<li>Initial release: 5 lights, reflection and irradiance maps, gamma, sphere deviation.</li>
+</ul>
+<hr>
+<h2 id="files-folders-">Files/Folders:</h2>
+<ul>
+<li>README.md      - This readme file.</li>
+<li>readme.html      - HTML version of this readme file.</li>
+<li>docs/          - API documentation.</li>
+<li>examples/      - Examples of the plugin in action. </li>
+<li>src/         - The source files for the plugin. </li>
+<li>libs/         - External Libraries that this plugin requires.</li>
+<li>assets/      - Diagrams for this readme.</li>
+</ul>
+<hr>
+<h2 id="description-">Description:</h2>
+<p>Thank you for downloading the UberShader for <a href="http://www.kiwijs.org/">Kiwi.JS</a>. This shader is designed to simulate lifelike lighting effects on 2D sprites, allowing you to create unprecedented detail and quality in your Kiwi.JS games.</p>
+<h2 id="features">Features</h2>
+<h3 id="texture-map-types">Texture Map Types</h3>
+<p>The UberShader uses seven texture maps: five to describe the surface of an object, and two to describe local lighting conditions.</p>
+<ul>
+<li>Diffuse: Flat color before lighting.</li>
+<li>Normal: Surface contour information, used to create detailed lighting.</li>
+<li>Specular: Surface reflectivity, controlling color and intensity of highlights.</li>
+<li>Emit: Surface glow information.</li>
+<li>Tint: Each entity can have up to three custom color channels to differentiate diffuse and specular color.</li>
+<li>Irradiance: Sphere map of local light, sampled over a hemisphere.</li>
+<li>Reflection: Sphere map of local light, sampled cleanly.</li>
+</ul>
+<h3 id="point-lights">Point Lights</h3>
+<p>The UberShader supports 5 colored point lights with 3D coordinates and custom falloff. These can add detail to the overall light described by irradiance and reflections.</p>
+<h3 id="gamma-correction">Gamma Correction</h3>
+<p>The UberShader can perform gamma correction on its output. By default this is set to 1.2, slightly darkening shadows and emphasising highlights.</p>
+<h3 id="sphere-deviation">Sphere Deviation</h3>
+<p>The Ubershader can distort image-based lighting and reflections from sphere maps. This creates an illusion of proximity in the reflections.</p>
+<hr>
+<h2 id="how-to-use-">How to Use: </h2>
+<p>This section contains information necessary to set up the UberShader plugin in your game.</p>
+<h3 id="installing-the-plugin">Installing the Plugin</h3>
+<p>This plugin is intended for use with <a href="http://www.kiwijs.org/">Kiwi.JS</a>. To add UberShader functionality to your Kiwi.JS game, simply include the plugin file, either <code>UberShader-1.0.0.js</code> or <code>UberShader-1.0.0.min.js</code>, after including the Kiwi.JS library. You will also need to include the MultiTexture plugin <code>MultiTexture-1.0.0.js</code>. We recommend placing all plugins inside a <code>plugins</code> folder:</p>
+<pre><code>&lt;script src="kiwi.js"&gt;&lt;/script&gt;
+&lt;script src="plugins/UberShader-1.0.0.js"&gt;&lt;/script&gt;
+&lt;script src="plugins/MultiTexture-1.0.0.js"&gt;&lt;/script&gt;
+</code></pre><h3 id="invoking-the-uber-shader">Invoking the Uber Shader</h3>
+<p>To apply the UberShader to an object, you must follow three steps.</p>
+<p>First, create a MultiTexture containing all the texture maps. Load your images individually, either as single images or as sprite sheets, then collate them into a MultiTexture. We recommend you do this in <code>State.create</code>. Make sure to list the images in the correct order:</p>
+<ul>
+<li>Diffuse</li>
+<li>Normal</li>
+<li>Specular</li>
+<li>Emit</li>
+<li>Tint</li>
+<li>Irradiance</li>
+<li>Reflection</li>
+</ul>
+<p>The MultiTextureAtlas is constructed thus:</p>
+<p><code>Kiwi.Textures.MultiTextureAtlas( name, imageType, cells, textureArray, sequences )</code></p>
+<pre><code>`name` (String): The identifier of the atlas.
+`imageType` (Number): The image type, either Kiwi.Textures.MultiTextureAtlas.SINGLE_IMAGE, Kiwi.Textures.MultiTextureAtlas.SPRITE_SHEET, or Kiwi.Textures.MultiTextureAtlas.TEXTURE_ATLAS. Treat this as a hint for the purpose of the MultiTextureAtlas.
+`cells` (Array): The cell data for the MultiTextureAtlas. This is most easily copied from one of the source images.
+`textureArray` (Array): An array of images to form the MultiTexture.
+`sequences` (Array): An array of animation sequences. You may safely define this as `null`.
+</code></pre><p>Example:</p>
+<pre><code>// Load the myXXX assets during preload
+//...
+
+// During create:
+
+var multiTextures = [
+    this.textures.myDiff.image,
+    this.textures.myNorm.image,
+    this.textures.mySpec.image,
+    this.textures.myEmit.image,
+    this.textures.myTint.image,
+    this.textures.myIrradianceMap.image,
+    this.textures.myReflectionMap.image
+];
+var myMTA = new Kiwi.Textures.MultiTextureAtlas("myMTA", Kiwi.Textures.MultiTextureAtlas.SINGLE_IMAGE, this.textures.myDiff.cells, multiTextures, null);
+this.textureLibrary.add( myMTA );
+</code></pre><p>Second, you must create your object using the MultiTextureAtlas. It is easiest to assign the object <code>atlas</code> a single texture, such as the diffuse map, then reassign the MultiTextureAtlas. This will ensure the game object has all its information properly filled out:</p>
+<pre><code>// where "this" is the current state
+var myEntity = new Kiwi.GameObjects.Sprite( this, this.textures.myDiff, 0, 0 );
+myEntity.atlas = myMTA;
+</code></pre><p>Third, you must assign the UberShader renderer to your game entity, and configure some additional information. The UberShader renderer does not require, but works better with, a link to the Game object.</p>
+<pre><code>// where "this" is the current state
+
+var uberShaderRenderer = this.game.renderer.requestSharedRenderer( "UberShaderRenderer" );
+
+myEntity.glRenderer = uberShaderRenderer;
+
+uberShaderRenderer.game = this.game;
+</code></pre><h3 id="setting-up-lights">Setting Up Lights</h3>
+<p>You can configure lights on the UberShader renderer. These will apply to every object that uses that renderer.</p>
+<p>There are 5 lights available, stored as the <code>uberShaderRenderer.lights</code> array. Each element in this array is an object with the following properties:</p>
+<pre><code>* `lightVector`: The position of the light, relative to the screen.
+* `lightColor`: RGB values in the range 0-1.
+* `lightIntensity`: The distance at which the light reaches normal strength, measured in pixels; usually in the range 100-500.
+* `lightFalloff`: The rate at which light falls off. The default value is 2, which represents falloff with the square of the distance as in nature. You may give it any value, but will probably only be interested in 1 or 0.
+</code></pre><p>By default, these lights are colored white ( [1,1,1] ) and have intensity 0. Any lights you do not wish to use can be set to 0.</p>
+<h3 id="optional-per-entity-parameters">Optional Per Entity Parameters</h3>
+<p>You may specify optional parameters directly on entities using the UberShader. These allow you to customise the emit and tint qualities of the shader on a per-object basis.</p>
+<p>To control the brightness of emission, add the <code>uberEmit</code> property to a game entity. Set it in the range 0-1.</p>
+<pre><code>myEntity.uberEmit = 1.0;
+</code></pre><p>To control the color of tint masks, add an <code>uberTints</code> object to a game entity, and populate it with <code>tint1</code>, <code>tint2</code> and <code>tint3</code>. Each tint is a color defined as an array of 4 values in the range 0-1. The first three values are RGB. The last value defines whether the tint also applies to specular color; a value of 0 does not affect specular color, while a value of 1 creates metallic reflections.</p>
+<pre><code>myEntity.uberTints = {
+    tint1: [1.0, 0.0, 0.0,  0.0],
+    tint2: [0.0, 1.0, 0.0,  0.0],
+    tint3: [0.0, 0.0, 1.0,  0.0]
+};
+</code></pre><h3 id="reusing-the-uber-shader">Reusing the Uber Shader</h3>
+<p>Once you have initialised the UberShader, you may assign it to other objects, so long as they have a valid MultiTextureAtlas:</p>
+<pre><code>var myEntity2 = new Kiwi.GameObjects.Sprite( this, this.textures.myMTA, 0, 0 );
+myEntity2.glRenderer = uberTextureRenderer;
+// OR
+myEntity2.glRenderer = this.game.renderer.requestSharedRenderer( "UberShaderRenderer" );
+</code></pre><p>Because this refers to the same renderer, you do not need to reconfigure the lights or relink it to the Game object.</p>
+<p>You may also use the standard Kiwi.JS renderer cloning techniques to create another renderer, but you will need to link the new clone to the Game object and provide unique lighting information.</p>
+<h3 id="customising-the-uber-shader">Customising the Uber Shader</h3>
+<p>The UberShader works very efficiently, but it has to do a lot of work to create high-quality renders. If you are not using every feature of the shader, you can see substantial performance upgrades by disabling unused features. Please contact us via the <a href="http://www.kiwijs.org/">Kiwi.JS website</a> to discuss creating a custom performance build.</p>
+<h3 id="questions-and-answers">Questions and Answers</h3>
+<ul>
+<li><strong>Can I use a sprite sheet with the UberShader?</strong> Yes. Simply make sure you set up the sprite cell data correctly on the asset you use for the MultiTextureAtlas' <code>cells</code> parameter. It will be applied to all the textures.</li>
+<li><strong>Can I use different image sizes for different texture maps?</strong> Yes, but they must be of the same proportion and layout. The shader will use proportional cells, treating each image as though it were stretched to match the "base image" you provided for the texture atlas cells in the MultiTextureAtlas. It will not respect texture atlas cells defined on other textures.</li>
+<li><strong>Can I animate the irradiance or reflection maps?</strong> No. The shader achieves high performance by relying on fixed coordinates for sphere maps. Adding the extra calculations to support multiple atlas cells would be too complex. If you wish to animate a sphere map, you will have to do it as a canvas draw operation. Consult <code>Kiwi.GameObjects.TextField</code> to see how we deal with real-time draw operations, in particular tagging textures as "dirty" so they may be updated on the video card.</li>
+</ul>
+<hr>
+<h2 id="tips-for-power-users-artists-and-coders-">Tips for Power Users: Artists and Coders:</h2>
+<p>This section describes advanced functionality. The UberShader makes use of several hidden data channels. It is also able to implement some very sophisticated shading techniques for free, if you know how to take advantage of them.</p>
+<p>For starters, remember that this is not a 3D shader. It draws sprites. You are always guaranteed to have a fixed view angle. This simplifies a great many calculations, allowing you to bake them into a texture map before the program even begins to run.</p>
+<h3 id="working-with-alpha-channels">Working with Alpha Channels</h3>
+<p>Several abilities of the UberShader depend on correctly-formatted alpha channels. We prefer to use PNG files, as they are relatively small and support proper transparency. Adobe Photoshop does not offer sufficient control to properly save some of the more subtle alpha tricks in PNG format. We recommend using the <a href="http://www.fnordware.com/superpng/">SuperPNG</a> plugin to save correct alpha channels. You may also get good results from <a href="http://www.gimp.org/">The GIMP</a>, another image editing system.</p>
+<h3 id="controlling-point-lights">Controlling Point Lights</h3>
+<h4 id="phong-shading-model">Phong Shading Model</h4>
+<p>The point lights in the UberShader are computed using the Phong model. This breaks illumination into two parts: diffuse and specular light.</p>
+<p>Diffuse light is released by matte surfaces. It doesn't matter what angle the viewer is at, light gets scattered in all directions.</p>
+<p>Specular light is released by shiny surfaces. It is very strong when you are observing the reflection of a light source, and falls off rapidly outside that highlight.</p>
+<p>Added together, these combine the characteristics of both shiny and matte surfaces for a convincing simulation of real-world light.</p>
+<h4 id="z-depth">Z Depth</h4>
+<p>Although Kiwi.JS does not render in 3D space, the UberShader still computes lights with a Z coordinate. Positive values are "in front of" the screen; negative values are "behind" it. Lights generally look nice when their intensity is roughly equal to their Z coordinate; this prevents excessive light intensity on objects close to the light.</p>
+<p><img src="assets/diagrams/Point Lights - Near vs Far.png" alt="Figure of blown-out lighting versus more subdued lighting"></p>
+<p>As you can see from this diagram, the difference between Z = 100 and Z = 600 is quite pronounced.</p>
+<h4 id="fake-directional-light">Fake Directional Light</h4>
+<p>While all the lights in the UberShader are point lights for performance reasons, it is possible to create a reasonable facsimile of a directional light. Whereas a point light spreads out and attenuates with distance, a directional light does not: the rays are treated as arriving in parallel from an infinitely distant source.</p>
+<p>While we cannot make the rays perfectly parallel, we can certainly eliminate falloff. Simply change the <code>lightFalloff</code> parameter of a light on the UberShaderRenderer to 0, preventing any distance-based attenuation. Then move the light several screens away from the viewport. Its rays will appear very nearly parallel, and it will not attenuate over the great distance.</p>
+<p>Note that <code>lightFalloff</code> of 0 will actually render <code>lightIntensity</code> meaningless. The falloff is used as an exponent in the lighting calculation, and anything to the power of 0 will always equal 1. Even setting light to brightness 0 will not turn it off. You must control light brightness by directly setting the RGB value of <code>lightColor</code>.</p>
+<h4 id="point-lights-scene-graph-and-the-camera">Point Lights, Scene Graph, and the Camera</h4>
+<p>Note that point lights are not part of the scene graph. If you move the State, they will not follow. In addition, you cannot add point lights to Groups. This would be a convenient way to connect a light to an object.</p>
+<p>You can solve this problem by setting up a connection between the scene graph and the point lights. Simply create an empty group and position it where you want the light to go. Then, during the <code>update</code> loop of the State, set the <code>lightVector</code> of the light according to world position. Fortunately, Kiwi.JS provides convenient methods for this. You don't even have to do matrix sorcery.</p>
+<pre><code>// First create a group...
+var group = new Kiwi.Group( this );
+// Position it where you want...
+
+// Then, during the update function, set the light position:
+uberShaderRenderer.lights[0].lightPosition = [ group.worldX, group.worldY ];
+</code></pre><p>Note that lights do respect camera movement (which <em>is</em> sorcery, but we do the dark matrix work behind the scenes). If you are moving the state to represent scrolling, this may cause lighting complications. We recommend moving the camera instead. You can access this transform property at <code>game.cameras.defaultCamera.transform</code> (where <code>game</code> is your Kiwi.Game object).</p>
+<h4 id="limits-on-lights">Limits on Lights</h4>
+<p>Each light is costly to render, definitely the costliest part of the whole renderer. We've provided 5 lights, but if you don't need that many, consider working with us to deactivate some or all of them. The environment maps can do a lot of that work much more cheaply.</p>
+<p>If you would like to use more lights, that's likewise possible. However, you may encounter hardware incompatibility. 5 lights is the maximum that we could get running on our Samsung Galaxy Tab 3. The hardware is somewhat infamous for its poor OpenGL optimisation, so it made a decent baseline.</p>
+<p>Why is this a hard limit? It has to do with the way shaders are loaded into hardware. They are compiled at run time, and the way they are compiled depends on the hardware. In the case of the Samsung tablet, the hardware has a maximum instruction count of 512, and it optimises its instructions poorly. The sixth light adds too many instructions, and it fails to run.</p>
+<p>If you intend to target more capable hardware platforms, this does not matter. You may be able to get away with many more lights.</p>
+<h3 id="diffuse-map">Diffuse Map</h3>
+<p>The diffuse map is the most basic part of the image. It's just a flat color. However, there is still some subtlety to it.</p>
+<h4 id="flat-color">Flat Color</h4>
+<p>When we say flat color, we mean <em>flat</em>. Diffuse maps should not have shading of any kind. Highlights and shadows are not part of the diffuse map.</p>
+<p><img src="assets/diagrams/Tank Diffuse Map.png" alt="Illustration of a flat color map"></p>
+<h4 id="ambient-occlusion">Ambient Occlusion</h4>
+<p>The sole exception is ambient occlusion. This is a real-life lighting effect. Crevices and concave areas in objects cannot receive light from all directions. We say the <em>ambient</em> light has been occluded, or blocked.</p>
+<p><img src="assets/diagrams/Tank Occlusion Map.png" alt="Illustration of an occlusion map"></p>
+<p>When creating textures for use with the UberShader, you should incorporate ambient occlusion into the diffuse map. This will make it seem more realistic, at no extra rendering cost.</p>
+<p>Note that our occlusion render included a ground plane. This creates the illusion of contact shadows where the object touches the ground. Spend some time when creating your spritesheets to preserve this data.</p>
+<p><img src="assets/diagrams/Tank Diffuse And Occlusion Map.png" alt="Illustration of flat color combined with occlusion"></p>
+<h4 id="avoid-programmer-colors">Avoid Programmer Colors</h4>
+<p>A "programmer color" is one which serves a valuable diagnostic purpose, but does not look good in real applications. Bright red (255, 0, 0) is an example of a programmer color.</p>
+<p>These are a poor choice for lit scenes and should be avoided wherever possible. Light multiplies each color channel in a surface. But if some of those channels are 0, they will never accumulate light. Multiply that red by a million, and you will still have nothing but red. If instead you choose (229, 23, 23), the green and blue channels will have something to work with, and the color will quickly blow out to white. This feels much more natural to the eye.</p>
+<p><img src="assets/diagrams/Programmer Colors.png" alt="Illustration of programmer colors"></p>
+<h4 id="diffuse-alpha">Diffuse Alpha</h4>
+<p>The alpha channel of the diffuse map is used, as expected, for transparency information. Note that it is not the master transparency; it only applies to the diffuse color plus any tint values. The specular map has its own alpha channel.</p>
+<h4 id="hero-map">Hero Map</h4>
+<p>Although diffuse maps may look flat without lighting information, they are still the most recognisable of textures. They are loaded first, so that in the event of WebGL failure there is still a human-relatable texture to display.</p>
+<p>We recommend you use the diffuse map as a "hero". Make sure it looks good. You can use it as reference for sprite sheets and texture atlas cells. In our use examples above, we use the diffuse pass wherever a multitexture is not suitable as a parameter.</p>
+<h4 id="example-diffuse-sprite">Example Diffuse Sprite</h4>
+<p>This is an example of a diffuse-shaded object. It has zero shininess and no specular highlights. Note how the human hand looks quite realistic with no shininess. This is because it is a naturally matte surface. In reality there is still some reflection due to skin oil and the material of the nails, but we'll get to that later.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/DiffuseHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/DiffuseHand</code>.</p>
+<p><img src="assets/diagrams/Render - Diffuse Hand.png" alt="Render of pure diffuse sprite"></p>
+<h3 id="normal-map">Normal Map</h3>
+<p>A normal map is simply a record of surface contours. The RGB components of the map are converted into XYZ coordinates of a vector orthogonal to the surface. This is extremely useful in light calculations.</p>
+<h4 id="normal-conventions-and-preprocessing">Normal Conventions and Preprocessing</h4>
+<p>The UberShader expects normal maps in a certain configuration. RGB maps componentwise to XYZ. Your normal map creating software of choice may not output the channels in the same order. Check to see if it fulfils the following criteria:</p>
+<ul>
+<li>Blue areas are flat.</li>
+<li>Green areas are facing the top.</li>
+<li>Red areas are facing the right.</li>
+</ul>
+<p>A well-formed normal map looks like this:</p>
+<p><img src="assets/diagrams/Hand Normal Map.png" alt="Illustration of a well-formed normal map"></p>
+<p>If your normal map does not meet these criteria, it is simple to fix. Either re-render it with the correct settings, or perform some simple operations in Photoshop. While you're unlikely to be creating your own normal maps by hand, you can easily do channel work.</p>
+<ul>
+<li>If green areas are facing the bottom instead of the top, use Curves on the Green channel and invert it.</li>
+<li>If green areas are facing left-right instead of up-down, you'll have to swap some channels. Use the Channel Mixer adjustment, either as an adjustment layer, or under Image -> Adjustments.</li>
+</ul>
+<p>If you're feeling brave, you can even paint additional detail into the normal map by hand. Remember that color corresponds to surface angle.</p>
+<h4 id="creating-normal-maps-from-photos">Creating Normal Maps from Photos</h4>
+<p>We used <a href="http://www.crazybump.com/">CrazyBump</a> to create our hand examples (hand model: Zachary Freiberg). This software costs money, but it produces great results. Other tools exist, such as <a href="http://cpetry.github.io/NormalMap-Online/">Normal Map Online</a>, which can accept a height map and output proper normal maps.</p>
+<h4 id="normal-alpha-specular-exponent">Normal Alpha: Specular Exponent</h4>
+<p>Because normal maps don't care about transparency (it's handled by the diffuse and specular maps), the alpha channel is free. We've decided to use it to control the specular exponent. See Specular Map for more information.</p>
+<h3 id="specular-map">Specular Map</h3>
+<p>The specular map controls how shiny and reflective your game object is across its surface. In general, shiny areas should be white, while dull areas should be black. Pits and crevices in a surface should also be darker than their surroundings, as light cannot easily enter their depths.</p>
+<p><img src="assets/diagrams/Hand Specular Map.png" alt="Illustration of a specular map"></p>
+<h4 id="highlight-color">Highlight Color</h4>
+<p>The color of the highlight is usually taken from the light itself. To obtain this effect, the specular map should be grayscale, with white in shiny areas and black in dark areas.</p>
+<h4 id="metallicity">Metallicity</h4>
+<p>Metallic objects reflect only a portion of light. The highlight takes on the color of the object itself. To obtain this effect, the specular map should be colored. Using a copy of the diffuse map is a good start.</p>
+<p><img src="assets/diagrams/Hand Specular Metal Map.png" alt="Illustration of a metallic specular map"></p>
+<p>Here is an example of two glossy objects. Both use the exact same diffuse and normal information, but one has a grayscale specular map and the other has a colored specular. Note how this simple difference can imply the difference between plastic and metal.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/SpecularMetalHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/SpecularMetalHand</code>.</p>
+<p><img src="assets/diagrams/Render - Specular Plastic and Metal Hand.png" alt="Render of plastic versus metal indicated via specular maps"></p>
+<h4 id="iridescence">Iridescence</h4>
+<p>Some objects, such as oil on water, pearlescent paint, or bismuth crystals, have complex microstructures that shine in different colors at different angles. As we view sprites from a fixed angle, we can bake iridescence into the specular map itself.</p>
+<p>In general, low-energy photons from the red end of the spectrum are more visible on dead-on surfaces, while blue photons are more visible at greater angles.</p>
+<p>You can simulate this by selecting fuzzy bands of the blue channel on the normal map, or by rendering a "facing ratio" pass if your sprites are based on 3D models.</p>
+<p>This example exaggerates the effect:</p>
+<p><img src="assets/diagrams/Hand Specular Iridescence.png" alt="Illustration of an iridescent specular map"></p>
+<h4 id="specular-alpha">Specular Alpha</h4>
+<p>The alpha channel of the specular map is, as expected, used for transparency information. This is separate from the diffuse transparency because specular light information is directional, and this results in different behaviour.</p>
+<h4 id="fresnel-terms">Fresnel Terms</h4>
+<p>19th century French physicist Augustin-Jean Fresnel analysed the transmission of light between two media, creating the so-called Fresnel Equations. Some light is reflected and bounces off the surface, while other light is refracted into the second medium. The key observation was that the <em>amount of reflection varies based on angle of incidence</em>. A ray of light that strikes a surface dead-on will be mostly refracted and have little reflection, while a ray that strikes at a glancing angle will be mostly reflected.</p>
+<p>This is useful for glass and water surfaces, but it also applies to translucent substances such as human skin.</p>
+<p>Because our sprites are viewed at a fixed angle, we can tell ahead of time what angle of incidence any point on the surface must have. This allows us to bake Fresnel terms into the specular texture itself. Increase the alpha of those parts of a sprite that do not directly face the camera. You can do this either by rendering a "facing ratio" pass if your sprites are based on 3D models, or by using the blue channel of your normal map as a mask (the blue channel represents how dead-on the surface is to the viewer).</p>
+<p>Beyond a certain angle, translucent objects become totally reflective. The rim of a transparent object should have a band of specular alpha of 1.</p>
+<p>We can also accentuate the high-energy photons at the blue end of the spectrum. Simply use Curves on the blue channel of the specular map in Photoshop.</p>
+<p>The result should look something like this (we have rendered it against a black background for clarity):</p>
+<p><img src="assets/diagrams/Hand Specular Glass.png" alt="Illustration of a specular map with Fresnel terms"></p>
+<p>Like opaque objects, transparent objects can have metallic highlights. In the following example, we render one metallic and one non-metallic object, again varying nothing but the specular map. Note that you can see parts of the background through the central parts of the objects, but not through the more reflective edges. We've enabled environment lighting for these objects, as it helps illustrate the point.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/SpecularGlassHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/SpecularGlassHand</code>.</p>
+<p><img src="assets/diagrams/Render - Hand Glass.png" alt="Render of transparent objects"></p>
+<p>Largely opaque objects such as metals will not internalise light at any angle, and will probably not have noticable Fresnel terms. Sci-fi effects such as cloaking fields and energy shields can do just about anything, so go crazy.</p>
+<h4 id="shader-parameter-maxexponent">Shader Parameter: maxExponent</h4>
+<p>The <em>exponent</em> of a specular surface dictates how tight the highlight appears. If the exponent is very high, the highlight is very tight. If the exponent is low, the highlight expands. You can control the general tightness of highlights across the entire shader by setting <code>uberShaderRenderer.maxExponent</code>. It has a default value of 32.</p>
+<h4 id="shader-parameter-specularintensity">Shader Parameter: specularIntensity</h4>
+<p>The <em>intensity</em> of the specular surface dictates how bright the highlight appears. You can control this across the entire shader by setting <code>uberShaderRenderer.specularIntensity</code>. Under realistic lighting conditions, this defaults to 1. If you turn it up, you will obtain much brighter highlights. This is unrealistic, but can help emphasise super-glossy surfaces.</p>
+<h5 id="exponent-from-normal-map">Exponent from Normal Map</h5>
+<p>In addition, you can control the exponent on a per-pixel basis. This allows you to soften the highlight in some areas by painting the region in darker colors.</p>
+<p>Bear in mind that linear color gradients in an exponent channel do not correspond to linear highlight size alterations. This is because of the way exponents work.</p>
+<p>Some mathematics: The base exponent, default 32.0, is multiplied by the normalized value of the exponent channel. Imagine that we have a light value of 0.9 before exponent. If the exponent channel is 1.0, the multiplied exponent is 32.0, and the output is 0.9 ^ 32.0 = 0.034. If the exponent channel is 0.5, the multiplied exponent is 16.0, and the output is 0.9 ^ 16.0 = 0.185. Halving the channel value has dilated this part of the highlight <em>six times</em>.</p>
+<p>There are not enough channels in the specular map to hold this data, so we pack it into the alpha channel of the normal map. These images show an exponent map in grayscale, and a normal map with the alpha channel used for an exponent map, shown against a black background for clarity. In the actual files, the normal would retain all color information. Note how the reflectivity of the fingernails has been accentuated.</p>
+<p><img src="assets/diagrams/Hand Exponent Map.png" alt="Illustration of an exponent map"></p>
+<p><img src="assets/diagrams/Hand Normal with Exponent.png" alt="Illustration of a normal map with included exponent map"></p>
+<p>You do not need to specify an alpha channel for the normal map. It is perfectly functional without one, and will simply provide default highlight exponents across the scene.</p>
+<h3 id="emit-map">Emit Map</h3>
+<p>An emission map is an additional texture that is unaffected by lighting. It is useful for glowing surfaces such as lights, flames, engine ports, or the glow of the atmosphere and sky.</p>
+<h4 id="glow-color">Glow Color</h4>
+<p>Your emit map contains the colours of glowing areas. Any area that does not glow should be painted black. Because it is additive, black areas will not appear in the final image; you do not have to worry about alphas (and, in fact, the alpha channel has another optional function).</p>
+<h4 id="sub-surface-scattering-sss-">Sub-Surface Scattering (SSS)</h4>
+<p>SSS is a phenomenon caused by translucent objects such as jade or skin. When light is absorbed by the surface, it bounces around inside the object and emerges unpredictably around the point of entry. This causes a distinctive soft glow. It is most easily seen when the sun shines through someone's ears, or you hold your fingers over a torch at night.</p>
+<p>The UberShader does not perform realtime SSS. However, the emit map can benefit from an understanding of SSS.</p>
+<p>In the following emit map, we added a soft red aura to the glowing parts of the image, as though the light were scattering through the skin. This adds greatly to the realism of the glow effect.</p>
+<p><img src="assets/diagrams/Hand Emit.png" alt="Illustration of an emit map with baked SSS"></p>
+<h4 id="entity-parameter-uberemit">Entity Parameter: uberEmit</h4>
+<p>The UberShader allows you to control the brightness of the emit map on a per-object basis. Simply set a parameter called <code>uberEmit</code>:</p>
+<pre><code>myEntity.uberEmit = 1.0;
+</code></pre><p>If the shader does not find this parameter, it will default to 0.</p>
+<p>The <code>uberEmit</code> parameter is in fact not a simple brightness slider, although it does function as one. It represents a half cycle of a cosine wave. If you increase it above 1, the brightness will start to diminish again. You cannot "blow out" the image by brightening it; if you want particularly bright lights, paint them with a white core.</p>
+<p>Because the parameter is a cosine wave, it smoothly transitions from 0 to 1. You don't need anything more sophisticated than a linear tween when animating the value.</p>
+<h4 id="emit-alpha-phase-and-animate-glow-flow">Emit Alpha: Phase and Animate Glow Flow</h4>
+<p>The alpha channel of an emit map is used to control the phase. This value (where black is 0 and white is 1) is added to the <code>uberEmit</code> parameter for each rendered pixel.</p>
+<p>If the emit alpha is flat white, the image will behave simply. This will also happen if it is flat black, although you may lose data if you are not careful about saving a totally transparent image.</p>
+<p>However, if you introduce gradients into the emit alpha, then start animating the <code>uberEmit</code> value, you can get amazing effects. Because the phase varies across the image, different parts will brighten at different times.</p>
+<p>This is an emit map with a phase channel:</p>
+<p><img src="assets/diagrams/Hand Emit Phase.png" alt="Illustration of a phase emit map"></p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/EmitHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/EmitHand</code>.</p>
+<p><img src="assets/diagrams/Render - Hand Emit.png" alt="Render of animated emit maps"></p>
+<p>Note that if you are using a phased map you can never fully turn it off. Some part will always be active. It is intended for permanent cycling effects.</p>
+<h3 id="tint-map">Tint Map</h3>
+<p>The tint map allows you to define custom colors on various areas of your entities. This can greatly augment the visual variety of your scenes.</p>
+<p>Kiwi.JS would normally require each unique entity to use its own texture. This would require a great many files and a great many draw calls to the video card. The result is big and slow. By introducing tint maps to the UberShader, we allow the render pipeline to use one texture and one draw call.</p>
+<h4 id="three-channels">Three Channels</h4>
+<p>Each of the RGB channels in the tint map forms a mask. You can define each mask independently; they can overlap or occupy different parts of the object. Black areas are not affected; white areas are fully affected.</p>
+<p>Each tint value is set by a property on the game entity. You may set these as follows:</p>
+<pre><code>myEntity.uberTints = {
+    tint1: [1.0, 0.0, 0.0,  0.0],
+    tint2: [0.0, 1.0, 0.0,  0.0],
+    tint3: [0.0, 0.0, 1.0,  0.0]
+};
+</code></pre><p>The shader will default to the above values in the absence of other information. In this way you can quickly see what areas are affected by the red, green, and blue channels.</p>
+<p>A tint map might look like this:</p>
+<p><img src="assets/diagrams/Hand Tint.png" alt="Illustration of a tint map"></p>
+<h4 id="tint-palettes">Tint Palettes</h4>
+<p>You may wish to set tints to randomly-selected terms from a list. For example, when populating a crowd, it may be useful to randomly assign eye colors. This code may help:</p>
+<pre><code>var eyeColors = [
+    [0.52, 0.21, 0.08, 0.0],    // Light brown
+    [0.4, 0.21, 0.08, 0.0],     // Dark brown
+    [0.4, 0.69, 0.96, 0.0],    // Blue
+    [0.46, 0.66, 0.23, 0.0],    // Green
+    [0.86, 0.70, 0.95, 0.0],    // Lilac
+    [0.91, 0.77, 0.26, 0.0],    // Gold
+    [0.96, 0.10, 0.03, 0.0],    // Red
+];
+for( var i = 0;  i M myEntityList.length;  i++ ) {
+    myEntityList[i].uberTints = {
+        tint1: eyeColors[ Math.floor(Math.random() * eyeColors.length) ]  // Eyes
+        tint2: // You decide what goes here
+    }
+}
+</code></pre><h4 id="the-tint-mixer">The Tint Mixer</h4>
+<p>Inside the shader, the code performs three linear blends:</p>
+<ul>
+<li>From diffuse color to tint1;</li>
+<li>From tint1 to tint2;</li>
+<li>From tint2 to tint3.</li>
+</ul>
+<p>There are some hidden gotchas in this system.</p>
+<p>For example, imagine you are creating tattoos for a tribe of warriors. Some warriors will not have tattoos; others will. It might seem a good idea to create a palette with two colors: skin and tattoo. However, you must be careful! If your tint channel is at 1.0 in the potential tattoo areas, it will overwrite any detail such as skin texture or the occlusion from wrinkles. It will seem to flatten out the tattoo areas, making them look unnatural.</p>
+<p>To reduce these problems, consider using tint channels that only go as high as 0.5 or less, and intensify your tint colors. This will retain some information from the underlying texture, which you can accentuate to look natural in the final blend. You may also want to apply texture derived from the diffuse map to the tint channel.</p>
+<p>Another problem arises when you overlap tint masks. Perhaps you also want to vary skin tone of your warriors. You must bear in mind the order of linear blends. In this example, you should probably apply the skin tint first, then the tattoo blend.</p>
+<h4 id="specular-tint">Specular Tint</h4>
+<p>By default, the tint does not affect the specular map. This is the function of the fourth term in the tint color array, which we had previously set to 0. This term controls the specular contribution. If you set it to 1, the tint will fully affect the specular channel in the exact same way as it affects the diffuse channel.</p>
+<p>As you will probably be using relatively saturated color in the tint channel, you will probably get metallic specular tints. If you want to retain the reflectivity information from the tint area, set the specular contribution low.</p>
+<p>In this example, we set nail polish to a range of values. Some are metallic; the black polish, however, would have no highlights if it contributed to the specular map, so it has no contribution.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/TintHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/TintHand</code>.</p>
+<p><img src="assets/diagrams/Render - Nailpolish Tint.png" alt="Render of tinted nail polish"></p>
+<h4 id="tint-alpha-reserved">Tint Alpha: Reserved</h4>
+<p>The tint map alpha channel is currently reserved for future functionality. It could potentially add a fourth tint mask. However, when exporting apps to Ludei Cocoon.JS, transparent areas do not report accurate color information. For maximum compatibility, we have elected to disable this channel. If you are creating a project that does not include Cocoon.JS implementation, we can reconfigure the shader to add a fourth channel.</p>
+<h3 id="reflection-map">Reflection Map</h3>
+<p>This texture is a special map. While it can be assigned to multiple objects in a scene, they should all have the <em>same</em> reflection map. It contains information about the general surroundings, and creates a convincing reflection.</p>
+<h4 id="angular-sphere-map">Angular/Sphere Map</h4>
+<p>The reflection is recorded as a sphere map, much like this:</p>
+<p><img src="assets/diagrams/Angular Reflection Map.png" alt="Illustration of a sphere map"></p>
+<p>(Map created by Optikz, acquired from <a href="http://blenderartists.org/forum/showthread.php?24038-Free-high-res-skymaps-(Massive-07-update!">http://blenderartists.org/forum/showthread.php?24038-Free-high-res-skymaps-(Massive-07-update!)</a>))</p>
+<p>This is a convenient format for efficient environmental reflections. It is very quick to compute in the shader, based solely on the normal map.</p>
+<p>It is <strong>important</strong> to note that, for technical reasons, your sphere maps must have power-of-two resolution. That is, the x and y resolutions must be one of 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, or 2048. (They need not be the <em>same</em> value, but there's no reason they should be different.) If you do not use power-of-two resolution sphere maps, Kiwi.JS will resize it, the shader will start looking in parts of the image that don't exist, and your objects will develop uexpected black patches.</p>
+<h4 id="fixed-perspective">Fixed Perspective</h4>
+<p>Because Kiwi.JS is a sprite-based system, we assume that the angle of view does not change significantly over time. This simplifies a number of calculations and reduces overhead. Accordingly, there is no facility to shift the perspective of the sphere map. If you wish to shift the angle of view, you'll have to rewrite the sphere map itself. This is a technical exercise left to the reader. Again, consult <code>Kiwi.GameObjects.TextField</code> to see how we deal with real-time draw operations, in particular tagging textures as "dirty" so they may be updated on the video card.</p>
+<h4 id="light-probe">Light Probe</h4>
+<p>You can create your own sphere maps very quickly with a camera and a shiny ball. Simply place the ball in your chosen environment, snap a photo, and crop it down so the top, bottom, and sides all touch the image frame. Then resize the image to power-of-two resolution to avoid later errors.</p>
+<p>If you do not have a shiny ball, you can use a soup spoon as a passable substitute. It will not return realistic results, but it may be good enough.</p>
+<p>You may also get good results by creating a 360 degree panorama and converting it to polar coordinates; see the next section.</p>
+<h4 id="polar-coordinates">Polar Coordinates</h4>
+<p>It is possible to convert to and from a sphere by using polar coordinates. This sounds complicated, but it's really just a case of selecting Filters -> Distort -> Polar Coordinates in both Photoshop and GIMP, and likely other capable editing suites to boot. The filter allows you to convert in both directions, so you can unwrap a sphere map, do some editing in a more familiar viewspace, then wrap it back into a sphere.</p>
+<p>You may need to scale the image along one axis after you transform into rectangular coordinates.</p>
+<p>Note that every time you do this, you introduce data loss into the image, so try to preserve your steps.</p>
+<p><img src="assets/diagrams/Angular Reflection Map Unwrapped.png" alt="Illustration of an unwrapped sphere map"></p>
+<p>It is also possible to create a sphere map by photographing a traditional panorama, then using polar coordinates on it. The results may not be physically perfect, but they will still look attractive.</p>
+<h4 id="reflection-alpha-unused">Reflection Alpha: Unused</h4>
+<p>We do not currently use the alpha channel in the reflection map. It makes no sense in a reflection, and if the reflection is reused across multiple objects, we can't add object-specific information either.</p>
+<h4 id="shader-parameter-spheredeviation">Shader Parameter: sphereDeviation</h4>
+<p>The one drawback of sphere mapping is the fact that it's not local. The sphere is assumed to be at infinite distance, and so reflections do not shift when objects move without rotating.</p>
+<p>The UberShader renderer has a special parameter to increase the apparent curvature of the reflection and irradiance maps. Use <code>uberShaderRenderer.sphereDeviation</code> to set this curvature. The default value is 0.05.</p>
+<p>The deviation effectively rotates further around the sphere based on the vector from the center of the screen. This is not entirely physically accurate, but it creates the illusion of shifting light as objects move through the scene. In particular, this is useful when you're trying to see reflections on a flat surface. If you had no sphere deviation, all the normals on the surface would point at the same point of the sphere map, and reflect a single color. With deviation enabled, they will spread out a little and reflect a region of the environment.</p>
+<p>Try <code>sphereDeviation</code> values of 0.2 to 0.5 if you want to see a highly pronounced level of deviation, or a value of 0.0 if you want pure infinite-distance sphere mapping.</p>
+<p>This example uses a sphereDeviation of 1.0 to really exaggerate the effect. Note that there are no lights active in the scene; all the highlights are generated by the environment. It is not entirely realistic, but it looks good.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/SphereDeviationHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/SphereDeviationHand</code>.</p>
+<p>Note that this deviation is computed using screen-space coordinates. Anything that shifts the position on the screen, from sprite animation to camera rotation, will cause the deviation to change. Accordingly, in some cases the highlights may not be identical when viewed at different orientations. This behaviour is eliminated when deviation is reduced to 0.0.</p>
+<h3 id="irradiance-map">Irradiance Map</h3>
+<p>The irradiance map is likewise a sphere map, but it describes matte lighting rather than sharp reflections. The irradiance map is a quick and efficient way to get beautiful real-world lighting into a scene.</p>
+<h4 id="irradiant-lighting">Irradiant Lighting</h4>
+<p>A point on the surface of an object scatters light into a hemisphere above it. This light is received most strongly from lights directly above it; lights at an angle are attenuated across a wider surface. Beyond the edges the object itself is preventing light from entering or departing the point.</p>
+<p>In other words, matte surfaces transmit light from all around them, not just a single light source. It's like a blurred version of the light from all around the object. The irradiance map models this lighting.</p>
+<p><img src="assets/diagrams/Angular Irradiance Map.png" alt="Illustration of an irradiance map"></p>
+<h4 id="faking-irradiance">Faking Irradiance</h4>
+<p>You can create an irradiance map with a neutral matte ball, much the same way that you would create a reflection map. However, if you only have a reflection map, you can still create an acceptable irradiance map.</p>
+<p>It's not quite as simple as blurring the reflection map. Said map compresses a lot of detail into the very edge, so even a nice Gaussian blur will overblur the rim and introduce distortions.</p>
+<p>Instead, you should first convert your reflection map to rectangular coordinates using the Polar Coordinates filter. It will still possess some distortion, but you will be better able to compensate for it in this view. Once you have a reasonably even view, apply a blur. Your blur radius should be about one-quarter the width of the image, such that it incorporates half the view in a simulated hemisphere.</p>
+<p>When your blur is complete, convert back to polar coordinates. Now take a copy of the original polar map, and blur that, then mask out the edges and lay it over the top. This will produce reasonably accurate irradiance both around the rim and in the center.</p>
+<p>You may need to blur a seam in the resulting polar map.</p>
+<p>Your irradiance map will bring new life to your lighting.</p>
+<p><a href="http://files.kiwijs.org/UberShaderExamples/examples/EnvironmentSwitcherHand/index.html">Click here to run the realtime example.</a> This example is also included in the UberShader repository as <code>examples/EnvironmentSwitcherHand</code>.</p>
+<p><img src="assets/diagrams/Render - Environment Switcher.png" alt="Render of a scene which can switch environment maps"></p>
+<p><strong>Protip</strong>: Because glossy reflections look unnatural on skin, and because we're not rendering anything else, we've blurred the reflection maps slightly. This technique can be extended to other objects in the scene, because reflection and irradiance are defined in texture atlases, not as global shader parameters. You can technically have different reflection and irradiance maps for every object in the scene. In practice this will involve a lot of unnecessary maps and duplicated effort. Know when to use these tools.</p>
+<hr>
+<h2 id="future-concepts-">Future Concepts:</h2>
+<p>Although an UberShader should be able to do everything, there are always a few things that get cut for time or performance reasons. Here are a few features we'd like to introduce in future versions, of varying levels of realism:</p>
+<h4 id="anisotropic-highlights">Anisotropic Highlights</h4>
+<p>For that brushed metal look, or realistic hair rendering.</p>
+<h4 id="realtime-sub-surface-scattering">Realtime Sub-Surface Scattering</h4>
+<p>For shiny noses and glowing ears. Really, realtime SSS makes skin come to life.</p>
+<h4 id="shadows">Shadows</h4>
+<p>We'd like to include self-shadowing and realtime shadows. This is actually a very complicated issue, and we'd probably wind up including parallax shading before it was completed. That would look really cool, though.</p>
+<h4 id="global-illumination">Global Illumination</h4>
+<p>High-end graphical solutions probe the environment to determine the color of nearby objects. Light bouncing between surfaces can cause color bleed, and builds up a much more realistic vision of the world.</p>
+<h4 id="refraction">Refraction</h4>
+<p>Currently, transparent objects cannot refract the background. Future versions of Kiwi.JS will open up that data to manipulation, permitting refraction shaders.</p>
+<h4 id="fuzzy-reflection">Fuzzy Reflection</h4>
+<p>Right now we only have two levels of environment map: a crisp reflection, and a blurred irradiance map. It would be more realistic to interpolate between the two, allowing for sharp reflections on some parts of an object, and duller gloss on other parts. This is possible using mipmap technology and some clever pre-processing, further accelerating our lightning-fast image-based lighting techniques.</p>

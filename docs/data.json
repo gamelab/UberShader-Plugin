@@ -1,0 +1,196 @@
+{
+    "project": {
+        "name": "UberShaderPlugin",
+        "description": "Quality 2D lighting.",
+        "version": "1.0.0",
+        "url": "http://kiwijs.org/"
+    },
+    "files": {
+        "src/UberShader-1.0.0.js": {
+            "name": "src/UberShader-1.0.0.js",
+            "modules": {},
+            "classes": {
+                "Kiwi.Renderers.UberShaderRenderer": 1,
+                "Kiwi.Shaders.UberShader": 1
+            },
+            "fors": {},
+            "namespaces": {
+                "Kiwi.Renderers": 1,
+                "Kiwi.Shaders": 1
+            }
+        }
+    },
+    "modules": {},
+    "classes": {
+        "Kiwi.Renderers.UberShaderRenderer": {
+            "name": "Kiwi.Renderers.UberShaderRenderer",
+            "shortname": "Kiwi.Renderers.UberShaderRenderer",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "namespace": "Kiwi.Renderers",
+            "file": "src/UberShader-1.0.0.js",
+            "line": 25,
+            "description": "Renderer designed to handle the UberShader.\n\nIt is recommended that you set the \"game\" parameter of this object after creation.",
+            "is_constructor": 1,
+            "extends": "Kiwi.Renderers.TextureAtlasRenderer",
+            "params": [
+                {
+                    "name": "gl",
+                    "description": "",
+                    "type": "WebGLRenderingContext"
+                },
+                {
+                    "name": "shaderManager",
+                    "description": "",
+                    "type": "Kiwi.Shaders.ShaderManager"
+                },
+                {
+                    "name": "params",
+                    "description": "",
+                    "type": "Object",
+                    "optional": true,
+                    "optdefault": "null"
+                }
+            ],
+            "return": {
+                "description": "",
+                "type": "Kiwi.Renderers.UberShaderRenderer"
+            },
+            "since": "1.0.0"
+        },
+        "Kiwi.Shaders.UberShader": {
+            "name": "Kiwi.Shaders.UberShader",
+            "shortname": "Kiwi.Shaders.UberShader",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "namespace": "Kiwi.Shaders",
+            "file": "src/UberShader-1.0.0.js",
+            "line": 339,
+            "description": "Shader wrapper for rendering UberShader",
+            "extends": "Kiwi.Shaders.TextureAtlasShader",
+            "is_constructor": 1,
+            "return": {
+                "description": "",
+                "type": "Kiwi.Shaders.UberShader"
+            }
+        }
+    },
+    "classitems": [
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 55,
+            "description": "The Kiwi.Game object.",
+            "itemtype": "property",
+            "name": "game",
+            "type": "Kiwi.Game",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 63,
+            "description": "The number of lights rendered. This cannot be changed on the shader.\n\n5 appears to be the limit for Samsung Galaxy Tab 3; more will exceed its available instructions.",
+            "itemtype": "property",
+            "name": "numLights",
+            "type": "number",
+            "default": "5",
+            "access": "private",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 74,
+            "description": "Exponent for specular highlights. Higher values mean tighter highlights.",
+            "itemtype": "property",
+            "name": "maxExponent",
+            "type": "number",
+            "default": "32.0",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 83,
+            "description": "The specular intensity. Higher values mean brighter highlights.",
+            "itemtype": "property",
+            "name": "specularIntensity",
+            "type": "number",
+            "default": "1.0",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 92,
+            "description": "Gamma correction term. Values above 1.0 darken midtones; values below 1.0 lighten midtones.",
+            "itemtype": "property",
+            "name": "gamma",
+            "type": "number",
+            "default": "1.2",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 101,
+            "description": "Sphere deviation provides the illusion of nearby reflections on moving objects. At 0.0, reflections are at infinite distance. At 0.5, reflections shift significantly.",
+            "itemtype": "property",
+            "name": "sphereDeviation",
+            "type": "number",
+            "default": "0.05",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 110,
+            "description": "Stage transformation parameters. These are used for CocoonJS compatibility and should not be set.",
+            "itemtype": "property",
+            "name": "stageTransform",
+            "type": "object",
+            "access": "private",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        },
+        {
+            "file": "src/UberShader-1.0.0.js",
+            "line": 123,
+            "description": "Light array. Each light is an object with properties lightPosition (an array of 3 positional values), lightColor (an array of 3 normalized color values), lightIntensity (a brightness value) and lightFalloff (an exponent, default 2).",
+            "itemtype": "property",
+            "name": "lights",
+            "type": "array",
+            "access": "public",
+            "tagname": "",
+            "since": "1.0.0",
+            "class": "Kiwi.Renderers.UberShaderRenderer",
+            "namespace": "Kiwi.Renderers"
+        }
+    ],
+    "warnings": []
+}

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>src/UberShader-1.0.0.js - UberShaderPlugin</title>
+    <link rel="stylesheet" href="http://yui.yahooapis.com/3.9.1/build/cssgrids/cssgrids-min.css">
+    <link rel="stylesheet" href="../assets/vendor/prettify/prettify-min.css">
+    <link rel="stylesheet" href="../assets/css/main.css" id="site_styles">
+    <link rel="shortcut icon" type="image/png" href="../assets/favicon.png">
+    <script src="http://yui.yahooapis.com/combo?3.9.1/build/yui/yui-min.js"></script>
+</head>
+<body class="yui3-skin-sam">
+
+<div id="doc">
+    <div id="hd" class="yui3-g header">
+        <div class="yui3-u-3-4">
+            
+                <h1><img src="../assets/css/logo.png" title="UberShaderPlugin"></h1>
+            
+        </div>
+        <div class="yui3-u-1-4 version">
+            <em>API Docs for: 1.0.0</em>
+        </div>
+    </div>
+    <div id="bd" class="yui3-g">
+
+        <div class="yui3-u-1-4">
+            <div id="docs-sidebar" class="sidebar apidocs">
+                <div id="api-list">
+    <h2 class="off-left">APIs</h2>
+    <div id="api-tabview" class="tabview">
+        <ul class="tabs">
+            <li><a href="#api-classes">Classes</a></li>
+            <li><a href="#api-modules">Modules</a></li>
+        </ul>
+
+        <div id="api-tabview-filter">
+            <input type="search" id="api-filter" placeholder="Type to filter APIs">
+        </div>
+
+        <div id="api-tabview-panel">
+            <ul id="api-classes" class="apis classes">
+            
+                <li><a href="../classes/Kiwi.Renderers.UberShaderRenderer.html">Kiwi.Renderers.UberShaderRenderer</a></li>
+            
+                <li><a href="../classes/Kiwi.Shaders.UberShader.html">Kiwi.Shaders.UberShader</a></li>
+            
+            </ul>
+
+            <ul id="api-modules" class="apis modules">
+            
+            </ul>
+        </div>
+    </div>
+</div>
+
+            </div>
+        </div>
+        <div class="yui3-u-3-4">
+                <div id="api-options">
+        Show:
+        <label for="api-show-inherited">
+            <input type="checkbox" id="api-show-inherited" checked>
+            Inherited
+        </label>
+
+        <label for="api-show-protected">
+            <input type="checkbox" id="api-show-protected">
+            Protected
+        </label>
+
+        <label for="api-show-private">
+            <input type="checkbox" id="api-show-private">
+            Private
+        </label>
+        <label for="api-show-deprecated">
+            <input type="checkbox" id="api-show-deprecated">
+            Deprecated
+        </label>
+
+    </div>
+
+
+            <div class="apidocs">
+                <div id="docs-main">
+                    <div class="content">
+                        <h1 class="file-heading">File: src/UberShader-1.0.0.js</h1>
+
+<div class="file">
+    <pre class="code prettyprint linenums">
+/*
+ * Declare plugin
+ */
+
+Kiwi.Plugins.UberShader = {
+  
+  name:&#x27;UberShader&#x27;,
+
+  version:&#x27;1.0.0&#x27;,
+
+  minimumKiwiVersion:&#x27;1.1.1&#x27;,
+
+  pluginDependencies: [
+  {
+    name:&quot;MultiTexture&quot;,
+    minimumVersion:&#x27;1.0.0&#x27;
+  }
+    
+  ]
+
+};
+Kiwi.PluginManager.register(Kiwi.Plugins.UberShader);
+
+
+/**
+* Renderer designed to handle the UberShader.
+*
+* It is recommended that you set the &quot;game&quot; parameter of this object after creation.
+*
+* @class UberShaderRenderer
+* @constructor
+* @namespace Kiwi.Renderers
+* @extends Kiwi.Renderers.TextureAtlasRenderer
+* @param gl {WebGLRenderingContext} 
+* @param shaderManager {Kiwi.Shaders.ShaderManager}
+* @param [params=null] {object}
+* @return {Kiwi.Renderers.UberShaderRenderer}
+* @since 1.0.0
+*/
+
+Kiwi.Renderers.UberShaderRenderer = function( gl, shaderManager, params ) {
+  // Perform super functionality
+  Kiwi.Renderers.TextureAtlasRenderer.call( this, gl, shaderManager, params );
+
+  // Custom functionality
+
+  this.setShaderPair( &quot;UberShader&quot; );
+
+  // Override default buffer configuration
+  this.bufferItemSize = 22;
+  this._vertexBuffer = new Kiwi.Renderers.GLArrayBuffer(gl, this.bufferItemSize);
+
+  // Internal data
+
+  /**
+  * The Kiwi.Game object.
+  * @property game
+  * @type Kiwi.Game
+  * @public
+  * @since 1.0.0
+  */
+  this.game = null;
+  /**
+  * The number of lights rendered. This cannot be changed on the shader.
+  *
+  * 5 appears to be the limit for Samsung Galaxy Tab 3; more will exceed its available instructions.
+  * @property numLights
+  * @type number
+  * @default 5
+  * @private
+  * @since 1.0.0
+  */
+  this.numLights = 5;
+  /**
+  * Exponent for specular highlights. Higher values mean tighter highlights.
+  * @property maxExponent
+  * @type number
+  * @default 32.0
+  * @public
+  * @since 1.0.0
+  */
+  this.maxExponent = 32.0;
+  /**
+  * The specular intensity. Higher values mean brighter highlights.
+  * @property specularIntensity
+  * @type number
+  * @default 1.0
+  * @public
+  * @since 1.0.0
+  */
+  this.specularIntensity = 1.0;
+  /**
+  * Gamma correction term. Values above 1.0 darken midtones; values below 1.0 lighten midtones.
+  * @property gamma
+  * @type number
+  * @default 1.2
+  * @public
+  * @since 1.0.0
+  */
+  this.gamma = 1.2;
+  /**
+  * Sphere deviation provides the illusion of nearby reflections on moving objects. At 0.0, reflections are at infinite distance. At 0.5, reflections shift significantly.
+  * @property sphereDeviation
+  * @type number
+  * @default 0.05
+  * @public
+  * @since 1.0.0
+  */
+  this.sphereDeviation = 0.05;
+  /**
+  * Stage transformation parameters. These are used for CocoonJS compatibility and should not be set.
+  * @property stageTransform
+  * @type object
+  * @private
+  * @since 1.0.0
+  */
+  this.stageTransform = {
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 1,
+    scaleY: 1
+  };
+  /**
+  * Light array. Each light is an object with properties lightPosition (an array of 3 positional values), lightColor (an array of 3 normalized color values), lightIntensity (a brightness value) and lightFalloff (an exponent, default 2).
+  * @property lights
+  * @type array
+  * @public
+  * @since 1.0.0
+  */
+  this.lights = [];
+  for( var i = 0;  i &lt; this.numLights;  i++ ) {
+    var light = {
+      lightPosition: [0, 0, 0],
+      lightColor: [1.0,1.0,1.0],
+      lightIntensity: 0,
+      lightFalloff: 2
+    };
+    this.lights.push(light);
+  }
+}
+// Extend renderer
+Kiwi.extend( Kiwi.Renderers.UberShaderRenderer, Kiwi.Renderers.TextureAtlasRenderer );
+
+Kiwi.Renderers.UberShaderRenderer.prototype.enable = function( gl, params ) {
+
+  // Entirely custom functionality
+
+  this.shaderPair = this.shaderManager.requestShader(gl, this._shaderPairName, true);
+
+  //Texture
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerDiff.location, 0);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerNorm.location, 1);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerSpec.location, 2);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerEmit.location, 3);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerTints.location, 4);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerIrradiance.location, 5);
+  gl.uniform1i(this.shaderPair.uniforms.uSamplerReflect.location, 6);
+
+
+  // Stage transformation updates in case of viewport resize
+  if(this.game !== null) {
+    if(this.game.deviceTargetOption == Kiwi.TARGET_COCOON) {
+      // Determine necessary stage transformation
+      // (Copypaste from GLRenderManager)
+      var offset = new Kiwi.Geom.Point(0, 0);
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      switch( this.game.stage.scaleType ) {
+          case Kiwi.Stage.SCALE_FIT:
+              // Compute aspect ratios
+              var arStage = this.game.stage.width / this.game.stage.height;
+              var arSpace = width / height;
+              if(arStage &lt; arSpace) {
+                  // Width is too wide
+                  var newWidth = height * arStage;
+                  offset.x = (width - newWidth) / 2;
+                  // Compress target space
+                  width = newWidth;
+              }
+              else {
+                  // Height is too wide
+                  var newHeight = width / arStage;
+                  offset.y = (height - newHeight) / 2;
+                  // Compress target space
+                  height = newHeight;
+              }
+              break;
+          case Kiwi.Stage.SCALE_STRETCH:
+              break;
+          case Kiwi.Stage.SCALE_NONE:
+              width = this._game.stage.width;
+              height = this._game.stage.height;
+              break;
+          default:
+              break;
+      }
+      // Set stage transform parameters
+      this.stageTransform.offsetX = offset.x;
+      this.stageTransform.offsetY = offset.y;
+      this.stageTransform.scaleX = this.game.stage.width / width;
+      this.stageTransform.scaleY = this.game.stage.height / height;
+    }
+  }
+  var stageTransformArray = new Float32Array( [
+      this.stageTransform.scaleX,
+      this.stageTransform.scaleY,
+      1.0
+      ] );
+  gl.uniform3fv(this.shaderPair.uniforms.uStageScaler.location, stageTransformArray );
+
+
+  // Lights
+  gl.uniform1f(this.shaderPair.uniforms.uMaxSpecularExponent.location, this.maxExponent);
+  gl.uniform1f(this.shaderPair.uniforms.uSpecularIntensity.location, this.specularIntensity);
+  var lightPositionArray = [];
+  var lightColorArray = [];
+  // Prepare inverse coordinates (with a guess if the renderer has no game object attached)
+  var yOffset = this.game !== null  ?
+    this.game.stage.height  :
+    600;
+  for( var i = 0;  i &lt; this.lights.length;  i++ ) {
+    // Generate transformed coordinates
+    var camMatrix = new Kiwi.Geom.Matrix( params.camMatrix[0], params.camMatrix[1], params.camMatrix[3], params.camMatrix[4], params.camMatrix[6], params.camMatrix[7] );
+    var lightPoint = camMatrix.transformPoint( new Kiwi.Geom.Point( this.lights[i].lightPosition[0], this.lights[i].lightPosition[1] ) );
+    // Pack light vector, including falloff exponent
+    lightPositionArray.push( this.stageTransform.offsetX * this.stageTransform.scaleX + lightPoint.x );
+    lightPositionArray.push( this.stageTransform.offsetY * this.stageTransform.scaleY + (yOffset - lightPoint.y) );
+    lightPositionArray.push(this.lights[i].lightPosition[2]);
+    lightPositionArray.push(this.lights[i].lightFalloff);
+    // Pack light color, including intensity parameter
+    lightColorArray.push(this.lights[i].lightColor[0]);
+    lightColorArray.push(this.lights[i].lightColor[1]);
+    lightColorArray.push(this.lights[i].lightColor[2]);
+    lightColorArray.push(this.lights[i].lightIntensity);
+  }
+  gl.uniform4fv(this.shaderPair.uniforms.uLightPosition.location, new Float32Array( lightPositionArray ) );
+  gl.uniform4fv(this.shaderPair.uniforms.uLightCol.location, new Float32Array( lightColorArray ));
+
+  
+
+  //Other uniforms
+  gl.uniform2fv(this.shaderPair.uniforms.uResolution.location, params.stageResolution);
+  gl.uniformMatrix3fv(this.shaderPair.uniforms.uCamMatrix.location, false, params.camMatrix);
+  gl.uniform1f(this.shaderPair.uniforms.uGamma.location, this.gamma);
+  gl.uniform1f(this.shaderPair.uniforms.uSphereDeviation.location, this.sphereDeviation);
+  
+}
+
+Kiwi.Renderers.UberShaderRenderer.prototype.addToBatch = function( gl, entity, camera ) {
+  // Override normal batch creation process
+  // We need some additional data in the attribute arrays
+
+  // Boilerplate
+
+  // Skip if it&#x27;s invisible due to zero alpha
+  if (entity.alpha &lt;= 0)
+      return;
+  var t = entity.transform;
+  var m = t.getConcatenatedMatrix();
+
+  var cell = entity.atlas.cells[entity.cellIndex];
+
+  var pt1 = new Kiwi.Geom.Point(0 - t.rotPointX, 0 - t.rotPointY);
+  var pt2 = new Kiwi.Geom.Point(cell.w - t.rotPointX, 0 - t.rotPointY);
+  var pt3 = new Kiwi.Geom.Point(cell.w - t.rotPointX, cell.h - t.rotPointY);
+  var pt4 = new Kiwi.Geom.Point(0 - t.rotPointX, cell.h - t.rotPointY);
+
+  pt1 = m.transformPoint(pt1);
+  pt2 = m.transformPoint(pt2);
+  pt3 = m.transformPoint(pt3);
+  pt4 = m.transformPoint(pt4);
+
+  // End boilerplate
+
+
+  // Assert tint colors
+  var t1 = [1.0, 0.0, 0.0, 0.0];
+  var t2 = [0.0, 1.0, 0.0, 0.0];
+  var t3 = [0.0, 0.0, 1.0, 0.0];
+  if( entity.uberTints ) {
+    t1 = entity.uberTints.tint1;
+    t2 = entity.uberTints.tint2;
+    t3 = entity.uberTints.tint3;
+  }
+  // Assert emission
+  var emit = 0.5;
+  if(entity.uberEmit) {
+    // Transform coordinates
+    emit = entity.uberEmit * 0.5 + 0.5;
+  }
+
+
+  // Fill vertex attribute buffer
+  // The first four terms are vertex-variant; the rest are per-object but must sadly be duplicated.
+  this._vertexBuffer.items.push(
+    pt1.x, pt1.y, cell.x, cell.y, entity.alpha, emit, m.a, m.b, m.c, m.d,  t1[0], t1[1], t1[2], t1[3],  t2[0], t2[1], t2[2], t2[3],  t3[0], t3[1], t3[2], t3[3],
+    pt2.x, pt2.y, cell.x + cell.w, cell.y, entity.alpha, emit, m.a, m.b, m.c, m.d,   t1[0], t1[1], t1[2], t1[3],  t2[0], t2[1], t2[2], t2[3],  t3[0], t3[1], t3[2], t3[3],
+    pt3.x, pt3.y, cell.x + cell.w, cell.y + cell.h, entity.alpha, emit, m.a, m.b, m.c, m.d,   t1[0], t1[1], t1[2], t1[3],  t2[0], t2[1], t2[2], t2[3],  t3[0], t3[1], t3[2], t3[3],
+    pt4.x, pt4.y, cell.x, cell.y + cell.h, entity.alpha, emit, m.a, m.b, m.c, m.d,  t1[0], t1[1], t1[2], t1[3],  t2[0], t2[1], t2[2], t2[3],  t3[0], t3[1], t3[2], t3[3]
+    );
+}
+
+Kiwi.Renderers.UberShaderRenderer.prototype.draw = function (gl) {
+  var bufferItemBufferSize = this.bufferItemSize * 4;
+  var bufferItemStep = 0;
+
+  this._vertexBuffer.uploadBuffer(gl, this._vertexBuffer.items);
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aXYUV);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aXYUV, 4, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep += 4;
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aAlphaEmit);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aAlphaEmit, 2, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep += 2;
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aMtABCD);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aMtABCD, 4, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep += 4;
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aTintCol1);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aTintCol1, 4, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep += 4;
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aTintCol2);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aTintCol2, 4, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep +=4;
+
+  gl.enableVertexAttribArray(this.shaderPair.attributes.aTintCol3);
+  gl.vertexAttribPointer(this.shaderPair.attributes.aTintCol3, 4, gl.FLOAT, false, bufferItemBufferSize, bufferItemStep * 4);
+  bufferItemStep +=4;
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this._indexBuffer.buffer);
+  gl.drawElements(gl.TRIANGLES, (this._vertexBuffer.items.length / bufferItemBufferSize) * 6, gl.UNSIGNED_SHORT, 0);
+};
+
+
+
+/**
+* Shader wrapper for rendering UberShader
+* @class UberShader
+* @extends Kiwi.Shaders.TextureAtlasShader
+* @constructor
+* @namespace Kiwi.Shaders
+* @return {Kiwi.Shaders.UberShader}
+*/
+
+Kiwi.Shaders.UberShader = function() {
+  // Super call
+  Kiwi.Shaders.TextureAtlasShader.call( this );
+
+
+  // Extended functionality
+
+  // Configure uniforms
+  this.uniforms = {
+    uCamMatrix: {
+        type: &quot;mat3&quot;
+    },
+    uResolution: {
+        type: &quot;2fv&quot;
+    },
+    uTextureSize: {
+        type: &quot;2fv&quot;
+    },
+    uSamplerDiff: {
+        type: &quot;1i&quot;
+    },
+    uSamplerNorm: {
+        type: &quot;1i&quot;
+    },
+    uSamplerSpec: {
+        type: &quot;1i&quot;
+    },
+    uSamplerIrradiance: {
+        type: &quot;1i&quot;
+    },
+    uSamplerReflect: {
+        type: &quot;1i&quot;
+    },
+    uSamplerEmit: {
+        type: &quot;1i&quot;
+    },
+    uSamplerTints: {
+        type: &quot;1i&quot;
+    },
+    uLightPosition: {
+        type: &quot;4fv&quot;
+    },
+    uLightCol: {
+        type: &quot;4fv&quot;
+    },
+    uSpecularIntensity: {
+        type: &quot;1f&quot;
+    },
+    uMaxSpecularExponent: {
+        type: &quot;1f&quot;
+    },
+    uStageScaler: {
+        type: &quot;3fv&quot;
+    },
+    uGamma: {
+        type: &quot;1f&quot;
+    },
+    uSphereDeviation: {
+        type: &quot;1f&quot;
+    }
+  };
+
+  // Configure shaders
+
+  this.vertSource = [
+    &quot;precision highp float;&quot;,
+    &quot;attribute vec4 aXYUV;&quot;,
+    &quot;attribute vec2 aAlphaEmit;&quot;,
+    &quot;attribute vec4 aMtABCD;&quot;,
+    &quot;attribute vec4 aTintCol1;&quot;,
+    &quot;attribute vec4 aTintCol2;&quot;,
+    &quot;attribute vec4 aTintCol3;&quot;,
+    &quot;uniform mat3 uCamMatrix;&quot;,
+    &quot;uniform vec2 uResolution;&quot;,
+    &quot;uniform vec2 uTextureSize;&quot;,
+    &quot;varying vec4 vTextureCoordAndHalfResolution;&quot;, // Combining varyings to come under min spec
+    &quot;varying vec4 vSpriteTransformScreenPack;&quot;,
+    &quot;varying vec4 vSpriteTransformWorldPack;&quot;,
+    &quot;varying vec4 vTintCol1;&quot;,
+    &quot;varying vec4 vTintCol2;&quot;,
+    &quot;varying vec4 vTintCol3;&quot;,
+    &quot;varying vec2 vAlphaAndEmitStrength;&quot;,
+    &quot;void main(void) {&quot;,
+    &quot;  vec2 pos = (uCamMatrix * vec3(aXYUV.xy,1)).xy; &quot;,
+    &quot;  gl_Position = vec4((pos / uResolution * 2.0 - 1.0) * vec2(1.0, -1.0), 0.0, 1.0);&quot;,
+    &quot;  vTextureCoordAndHalfResolution = vec4( aXYUV.zw / uTextureSize, uResolution * 0.5);&quot;,
+    // Compute per-entity transform matrices for fragment
+    &quot;  mat3 vSpriteTransformScreen = mat3(aMtABCD.x, aMtABCD.y, 0.0, aMtABCD.z, aMtABCD.w, 0.0, 0.0, 0.0, 1.0) * uCamMatrix;&quot;,  // Used for camera-space lighting
+    &quot;  vSpriteTransformScreenPack = vec4( vSpriteTransformScreen[0][0], vSpriteTransformScreen[1][0], vSpriteTransformScreen[0][1], vSpriteTransformScreen[1][1] );&quot;,
+    &quot;  vSpriteTransformWorldPack = vec4( aMtABCD.x, aMtABCD.y, aMtABCD.z, aMtABCD.w );&quot;,
+    &quot;  vTintCol1 = aTintCol1;&quot;,
+    &quot;  vTintCol2 = aTintCol2;&quot;,
+    &quot;  vTintCol3 = aTintCol3;&quot;,
+    &quot;  vAlphaAndEmitStrength = aAlphaEmit;&quot;,
+    &quot;}&quot;
+  ];
+
+  this.fragSource = [
+    &quot;precision highp float;&quot;,
+    // highp precision is necessary for many terms to produce nice lighting on mobile devices
+    // consider upgrading mediump or lowp terms in the fragment shader if necessary
+    &quot;varying vec4 vTextureCoordAndHalfResolution;&quot;,
+    &quot;varying vec4 vSpriteTransformScreenPack;&quot;,
+    &quot;varying vec4 vSpriteTransformWorldPack;&quot;,
+    &quot;varying vec4 vTintCol1;&quot;,
+    &quot;varying vec4 vTintCol2;&quot;,
+    &quot;varying vec4 vTintCol3;&quot;,
+    &quot;varying vec2 vAlphaAndEmitStrength;&quot;,
+    &quot;uniform sampler2D uSamplerDiff;&quot;,  // A component is opacity
+    &quot;uniform sampler2D uSamplerNorm;&quot;,  // A component is specular exponent
+    &quot;uniform sampler2D uSamplerSpec;&quot;,  // A component is specular opacity
+    &quot;uniform sampler2D uSamplerIrradiance;&quot;,
+    &quot;uniform sampler2D uSamplerReflect;&quot;,
+    &quot;uniform sampler2D uSamplerEmit;&quot;,  // A component is optional phase
+    &quot;uniform sampler2D uSamplerTints;&quot;, // RGBA mask four tint colours
+    &quot;uniform vec4 uLightPosition[5];&quot;,  // W component is falloff exponent
+    &quot;uniform vec4 uLightCol[5];&quot;, // W component is intensity
+    &quot;uniform vec3 uStageScaler;&quot;,  // XY is stage offset, Z is constant; this is only currently implemented for CocoonJS compatibility
+    &quot;uniform float uMaxSpecularExponent;&quot;,
+    &quot;uniform float uSpecularIntensity;&quot;,
+    &quot;uniform float uGamma;&quot;,
+    &quot;uniform float uSphereDeviation;&quot;,
+    // Normal Map Constants
+    &quot;const vec3 eyeVec = vec3(0.0, 0.0, 1.0);&quot;,
+
+    &quot;void main(void) {&quot;,
+    // Procure viewport-corrected fragment coordinate
+    &quot;  vec3 fragCoord = gl_FragCoord.xyz * uStageScaler.xyz;&quot;,
+    // Read source maps
+    &quot;  lowp vec4 col = texture2D(uSamplerDiff, vTextureCoordAndHalfResolution.xy);&quot;,
+    &quot;  lowp vec4 norm = texture2D(uSamplerNorm, vTextureCoordAndHalfResolution.xy);&quot;,
+    &quot;  lowp vec4 spec = texture2D(uSamplerSpec, vTextureCoordAndHalfResolution.xy);&quot;,
+    &quot;  lowp vec4 emit = texture2D(uSamplerEmit, vTextureCoordAndHalfResolution.xy);&quot;,
+    &quot;  lowp vec4 tint = texture2D(uSamplerTints, vTextureCoordAndHalfResolution.xy);&quot;,
+
+    // Compute tints
+    &quot;  col.rgb = mix(mix(mix(col.rgb, vTintCol1.rgb, tint.r), vTintCol2.rgb, tint.g), vTintCol3.rgb, tint.b);&quot;,
+    // Specular tints (use tintCol alpha to determine metallicity)
+    &quot;  spec.rgb = mix(mix(mix(spec.rgb, vTintCol1.rgb, tint.r * vTintCol1.a), vTintCol2.rgb, tint.g * vTintCol2.a), vTintCol3.rgb, tint.b * vTintCol3.a);&quot;,
+
+    // Remap normal to transformed coordinate space: both screen and world versions
+    &quot;  norm.xyz = norm.xyz * 2.0 - 1.0;&quot;, // Preserve alpha
+    &quot;  mediump float normLength = length(norm.xy);&quot;,
+    &quot;  lowp vec3 normWorld = norm.xyz;&quot;,
+    // Expand matrices from packed format
+    &quot;  norm.y *= -1.0;&quot;,
+    &quot;  normWorld.xy = (vec3(normWorld.xy, 1.0) * mat3( vSpriteTransformWorldPack.x, vSpriteTransformWorldPack.y, 0.0, vSpriteTransformWorldPack.z, vSpriteTransformWorldPack.w, 0.0, 0.0, 0.0, 1.0 ) ).xy;&quot;,
+    &quot;  norm.xy = (vec3(norm.xy, 1.0) * mat3( vSpriteTransformScreenPack.x, vSpriteTransformScreenPack.y, 0.0, vSpriteTransformScreenPack.z, vSpriteTransformScreenPack.w, 0.0, 0.0, 0.0, 1.0 ) ).xy;&quot;,  // Transform XY normals to match object transformation; Z normal is unaffected on sprites
+    &quot;  norm.xy *= normLength / length(norm.xy);&quot;, // Restore original XY magnitude, which may be lost if object matrix is scaled
+    &quot;  norm.xyz = normalize(norm.xyz);&quot;,
+    &quot;  norm.y *= -1.0;&quot;,
+    &quot;  normWorld.xy *= normLength / length(normWorld.xy);&quot;,
+    &quot;  normWorld = normalize(normWorld);&quot;,
+
+    // Compute fragment off-axis distortion
+    // &quot;  vec2 normalizedFragCoord = vec2( (fragCoord.x - vTextureCoordAndHalfResolution.z) / vTextureCoordAndHalfResolution.z, (fragCoord.y - vTextureCoordAndHalfResolution.w) / vTextureCoordAndHalfResolution.w );&quot;,
+    // &quot;  vec2 normTheta = asin( normWorld.xy );&quot;,
+    // &quot;  vec2 fragTheta = asin( normalizedFragCoord ) * uSphereDeviation;&quot;,
+    // &quot;  vec2 sigmaTheta = normTheta + fragTheta;&quot;,
+    // &quot;  normWorld.xy = sin(sigmaTheta);&quot;,
+    &quot;  normWorld.xy = sin( asin( normWorld.xy ) + asin( vec2( (fragCoord.x - vTextureCoordAndHalfResolution.z) / vTextureCoordAndHalfResolution.z, (fragCoord.y - vTextureCoordAndHalfResolution.w) / vTextureCoordAndHalfResolution.w ) ) * uSphereDeviation );&quot;,
+    &quot;  normWorld = normalize(normWorld);&quot;,
+    // Compute reflection map lookup
+    &quot;  vec2 refLook = normWorld.xy * vec2(0.5, -0.5) + 0.5;&quot;,
+    // Cumulative lighting
+    &quot;  lowp vec3 diffSum = texture2D(uSamplerIrradiance, refLook.xy).rgb;&quot;,
+    &quot;  lowp vec3 specSum = vec3(0.0);&quot;,
+    &quot;  mediump float fragmentSpecularExponent = norm.a * uMaxSpecularExponent;&quot;,
+
+    
+    // Process lights
+    &quot;  vec3 lightDir = vec3(0.0);&quot;,
+    &quot;  mediump float lightIntensity = 0.0;&quot;,
+    &quot;  lowp vec3 lightContribution = vec3(0.0);&quot;,
+    &quot;  mediump vec3 reflectionDirection = vec3(0.0);&quot;,
+    &quot;  for(int i = 0; i &lt; 5;  i++) {&quot;,
+    // Obtain coordinate lighting data
+    &quot;    lightDir = fragCoord.xyz - uLightPosition[i].xyz;&quot;,
+    &quot;    lightIntensity = pow(uLightCol[i].w / length(lightDir), uLightPosition[i].w);&quot;,
+    &quot;    lightContribution = uLightCol[i].rgb * lightIntensity;&quot;,
+    &quot;    reflectionDirection = reflect( normalize( lightDir ), norm.xyz );&quot;,
+    // Accumulate light
+    &quot;    diffSum += lightContribution * max( dot( reflectionDirection, norm.xyz ), 0.0 );&quot;,
+    &quot;    specSum += lightContribution * pow(max( dot( reflectionDirection, eyeVec ), 0.0 ), fragmentSpecularExponent);&quot;,
+    &quot;  }&quot;,
+
+    // Final composite
+    &quot;  gl_FragColor = vec4(&quot;,
+    &quot;    pow( &quot;,  // Begin gamma correction
+    &quot;    col.rgb * diffSum * col.a&quot;, // Diffuse color
+    &quot;    + spec.rgb * (specSum * spec.a * uSpecularIntensity + texture2D(uSamplerReflect, refLook.xy).rgb)&quot;, // Specular color including environment reflection
+    &quot;    + emit.rgb * (0.5 + 0.5 * cos( (emit.a + vAlphaAndEmitStrength.y) * 6.283) )&quot;,  // Emissive color
+    &quot;    , vec3(uGamma) ),&quot;,  // End gamma correction
+    &quot;    min(col.a + spec.a, 1.0) * vAlphaAndEmitStrength.x&quot;,  // Alpha
+    &quot;  );&quot;,
+    /*&quot;  diffSum *= col.rgb * col.a;&quot;,
+    &quot;  specSum *= spec.rgb * spec.a * uSpecularIntensity;&quot;,
+    &quot;  lowp vec3 reflectSum = spec.rgb * texture2D(uSamplerReflect, refLook.xy).rgb;&quot;,
+    &quot;  lowp vec3 emitSum = emit.rgb * (0.5 + 0.5 * cos( (emit.a + vAlphaAndEmitStrength.y) * 6.283) );&quot;,
+    &quot;  lowp vec3 gamma = pow( diffSum + specSum + reflectSum + emitSum,  vec3( uGamma ) );&quot;,
+    &quot;  lowp float alphaSum = min(col.a + spec.a, 1.0) * vAlphaAndEmitStrength.x;&quot;,
+    &quot;  gl_FragColor = vec4( gamma, alphaSum );&quot;,*/
+    &quot;}&quot;
+  ];
+
+}
+Kiwi.extend( Kiwi.Shaders.UberShader, Kiwi.Shaders.TextureAtlasShader );
+
+Kiwi.Shaders.UberShader.prototype.init = function( gl ) {
+  // Override default method
+
+  // Super
+  Kiwi.Shaders.ShaderPair.prototype.init.call(this, gl);
+
+  // Redesigned attributes
+  this.attributes.aXYUV = gl.getAttribLocation(this.shaderProgram, &quot;aXYUV&quot;);
+  this.attributes.aAlphaEmit = gl.getAttribLocation(this.shaderProgram, &quot;aAlphaEmit&quot;);
+  this.attributes.aMtABCD = gl.getAttribLocation(this.shaderProgram, &quot;aMtABCD&quot;);
+  this.attributes.aTintCol1 = gl.getAttribLocation(this.shaderProgram, &quot;aTintCol1&quot;);
+  this.attributes.aTintCol2 = gl.getAttribLocation(this.shaderProgram, &quot;aTintCol2&quot;);
+  this.attributes.aTintCol3 = gl.getAttribLocation(this.shaderProgram, &quot;aTintCol3&quot;);
+  
+  this.initUniforms(gl);
+}
+    </pre>
+</div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="../assets/vendor/prettify/prettify-min.js"></script>
+<script>prettyPrint();</script>
+<script src="../assets/js/yui-prettify.js"></script>
+<script src="../assets/../api.js"></script>
+<script src="../assets/js/api-filter.js"></script>
+<script src="../assets/js/api-list.js"></script>
+<script src="../assets/js/api-search.js"></script>
+<script src="../assets/js/apidocs.js"></script>
+</body>
+</html>
